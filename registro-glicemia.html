@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiaCare - Registro de Glicemia</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Estilos para o popup */
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .popup-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .popup-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    .confirm-button, .cancel-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .confirm-button {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .confirm-button:hover {
+      background-color: #45a049;
+    }
+    
+    .cancel-button {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .cancel-button:hover {
+      background-color: #d32f2f;
+    }
+    
+    /* Estilo para a tabela */
+    #tabela-historico {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    #tabela-historico th, #tabela-historico td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    
+    #tabela-historico th {
+      background-color: #007acc;
+      color: white;
+    }
+    
+    #tabela-historico tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    
+    #tabela-historico tr:hover {
+      background-color: #e6f7ff;
+    }
+    
+    /* Estilo para o gráfico */
+    .grafico-container {
+      height: 400px;
+      margin-top: 30px;
+      margin-bottom: 30px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Estilo para mensagens */
+    #mensagem-confirmacao {
+      display: none;
+      color: green;
+      margin: 15px 0;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    /* Ajuste para evitar sobreposição do rodapé */
+    .content {
+      padding-bottom: 100px;
+    }
+
+    .footer {
+      position: relative;
+      bottom: auto;
+      width: 100%;
+    }
+
+    /* Novos estilos para ações */
+    .acoes-cell {
+      white-space: nowrap;
+      text-align: center;
+    }
+    
+    .btn-editar, .btn-excluir {
+      padding: 5px 10px;
+      margin: 0 2px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .btn-editar {
+      background-color: #ffa500;
+      color: white;
+    }
+    
+    .btn-editar:hover {
+      background-color: #ff8c00;
+    }
+    
+    .btn-excluir {
+      background-color: #ff4444;
+      color: white;
+    }
+    
+    .btn-excluir:hover {
+      background-color: #cc0000;
+    }
+
+    .btn-cancelar {
+      background-color: #6c757d;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    
+    .btn-cancelar:hover {
+      background-color: #5a6268;
+    }
+
+    .form-button {
+      background-color: #007acc;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .form-button:hover {
+      background-color: #005a9e;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo-container">
+      <h1>DiaCare</h1>
+      <div class="heart"></div>
+    </div>
+  </header>
+
+  <main class="content">
+    <h2>Registrar Glicemia Capilar</h2>
+    <form id="form-glicemia" action="processa_glicemia.php" method="POST">
+      <input type="hidden" id="registro-id" name="id" value="">
+      
+      <div class="form-group">
+        <label for="data">Data:</label>
+        <input type="date" id="data" name="data" required />
+      </div>
+
+      <div class="form-group">
+        <label for="glicemia">Valor da Glicemia (mg/dL):</label>
+        <input type="number" id="glicemia" name="glicemia" required min="20" max="600" />
+      </div>
+
+      <div class="form-group">
+        <label for="periodo">Período:</label>
+        <select id="periodo" name="periodo" required>
+          <option value="">Selecione</option>
+          <option value="Jejum">Jejum</option>
+          <option value="Pré-prandial">Pré-prandial</option>
+          <option value="Pós-prandial">Pós-prandial</option>
+        </select>
+      </div>
+
+      <button type="submit" class="form-button" id="submit-button">Registrar</button>
+      <button type="button" class="btn-cancelar" id="cancel-edit" style="display: none;">Cancelar Edição</button>
+    </form>
+
+    <div id="mensagem-confirmacao"></div>
+
+    <!-- Popup de confirmação -->
+    <div id="confirmacao-popup" class="popup" style="display: none;">
+      <div class="popup-content">
+        <h3>Confirme os dados</h3>
+        <p><strong>Data:</strong> <span id="confirm-data"></span></p>
+        <p><strong>Valor:</strong> <span id="confirm-glicemia"></span> mg/dL</p>
+        <p><strong>Período:</strong> <span id="confirm-periodo"></span></p>
+        <div class="popup-buttons">
+          <button id="confirm-submit" class="confirm-button">Confirmar</button>
+          <button id="cancel-submit" class="cancel-button">Corrigir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popup de confirmação de exclusão -->
+    <div id="confirmacao-exclusao" class="popup" style="display: none;">
+      <div class="popup-content">
+        <h3>Confirmar Exclusão</h3>
+        <p>Tem certeza que deseja excluir este registro?</p>
+        <div class="popup-buttons">
+          <button id="confirm-excluir" class="confirm-button">Sim, Excluir</button>
+          <button id="cancel-excluir" class="cancel-button">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico maior -->
+    <div class="grafico-container">
+      <h3>Histórico de Glicemia (Últimas 10 medições)</h3>
+      <canvas id="graficoGlicemia"></canvas>
+    </div>
+
+    <!-- Tabela de histórico -->
+    <div class="tabela-container">
+      <h3>Histórico Completo</h3>
+      <table id="tabela-historico">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Valor (mg/dL)</th>
+            <th>Período</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dados serão preenchidos via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <button class="botao-voltar" onclick="window.history.back()">Voltar</button>
+
+  <footer class="footer">
+    <p>&copy; 2024 DiaCare. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    // Variáveis globais
+    let registroParaExcluir = null;
+    let modoEdicao = false;
+
+    // Configuração do gráfico - COM DATAS MAIS VELHAS NO EIXO Y (ESQUERDA)
+    const ctx = document.getElementById('graficoGlicemia').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Glicemia (mg/dL)',
+          data: [],
+          borderColor: '#007acc',
+          backgroundColor: 'rgba(0, 122, 204, 0.1)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+          pointBackgroundColor: '#007acc',
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false,
+            suggestedMin: 60,
+            suggestedMax: 200,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            },
+            // Garantir que as datas mais velhas fiquem do lado esquerdo
+            reverse: false
+          }
+        },
+        plugins: {
+          tooltip: {
+            backgroundColor: '#333',
+            titleFont: {
+              size: 14
+            },
+            bodyFont: {
+              size: 12
+            }
+          }
+        }
+      }
+    });
+
+    // FUNÇÃO FORMATDATE CORRIGIDA - versão robusta
+    function formatDate(dateString) {
+        if (!dateString) return '--/--/----';
+        
+        // Se já estiver no formato brasileiro, retornar como está
+        if (typeof dateString === 'string' && dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            return dateString;
+        }
+        
+        // Se estiver no formato AAAA-MM-DD (formato do input date)
+        if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const parts = dateString.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        
+        // Tentar converter de qualquer outro formato
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return '--/--/----';
+            }
+            const dia = String(date.getDate()).padStart(2, '0');
+            const mes = String(date.getMonth() + 1).padStart(2, '0');
+            const ano = date.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        } catch {
+            return '--/--/----';
+        }
+    }
+
+    // Popup de confirmação
+    document.getElementById('form-glicemia').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Validar campos antes de mostrar o popup
+      const data = document.getElementById('data').value;
+      const valor = document.getElementById('glicemia').value;
+      const periodo = document.getElementById('periodo').value;
+      
+      if (!data || !valor || !periodo) {
+        showMessage('Por favor, preencha todos os campos', 'error');
+        return;
+      }
+      
+      // Preencher popup com os dados do formulário
+      document.getElementById('confirm-data').textContent = formatDate(data);
+      document.getElementById('confirm-glicemia').textContent = valor;
+      document.getElementById('confirm-periodo').textContent = 
+        document.getElementById('periodo').options[document.getElementById('periodo').selectedIndex].text;
+      
+      // Mostrar popup
+      document.getElementById('confirmacao-popup').style.display = 'block';
+    });
+
+    // Botão confirmar do popup
+    document.getElementById('confirm-submit').addEventListener('click', async function() {
+      const form = document.getElementById('form-glicemia');
+      const formData = new FormData(form);
+      
+      // Determinar a URL correta baseada no modo (inserir ou editar)
+      const url = modoEdicao ? 'atualizar_glicemia.php' : 'processa_glicemia.php';
+      
+      try {
+        showMessage('Enviando dados...', 'info');
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'success') {
+          const mensagem = modoEdicao ? '✅ Glicemia atualizada com sucesso!' : '✅ Glicemia registrada com sucesso!';
+          showMessage(mensagem, 'success');
+          resetarFormulario();
+          document.getElementById('confirmacao-popup').style.display = 'none';
+          await carregarHistorico();
+        } else {
+          showMessage('Erro: ' + (result.message || 'Falha ao registrar'), 'error');
+        }
+      } catch (error) {
+        showMessage('Erro na conexão: ' + error.message, 'error');
+        console.error('Erro:', error);
+      }
+    });
+
+    // Botão cancelar do popup
+    document.getElementById('cancel-submit').addEventListener('click', function() {
+      document.getElementById('confirmacao-popup').style.display = 'none';
+    });
+
+    // Confirmação de exclusão
+    document.getElementById('confirm-excluir').addEventListener('click', async function() {
+      if (!registroParaExcluir) return;
+      
+      try {
+        const formData = new FormData();
+        formData.append('id', registroParaExcluir);
+        
+        const response = await fetch('excluir_glicemia.php', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'success') {
+          showMessage('✅ Registro excluído com sucesso!', 'success');
+          document.getElementById('confirmacao-exclusao').style.display = 'none';
+          await carregarHistorico();
+        } else {
+          showMessage('Erro: ' + (result.message || 'Falha ao excluir'), 'error');
+        }
+      } catch (error) {
+        showMessage('Erro na conexão: ' + error.message, 'error');
+        console.error('Erro:', error);
+      }
+      
+      registroParaExcluir = null;
+    });
+
+    // Cancelar exclusão
+    document.getElementById('cancel-excluir').addEventListener('click', function() {
+      document.getElementById('confirmacao-exclusao').style.display = 'none';
+      registroParaExcluir = null;
+    });
+
+    // Cancelar edição
+    document.getElementById('cancel-edit').addEventListener('click', function() {
+      resetarFormulario();
+    });
+
+    // Função para carregar histórico (CORRIGIDA)
+    async function carregarHistorico() {
+        try {
+            const response = await fetch('buscar_glicemia.php');
+            
+            if (!response.ok) {
+                throw new Error('Erro ao carregar dados');
+            }
+            
+            const dados = await response.json();
+            
+            console.log('Dados recebidos do servidor:', dados); // Para debug
+            
+            // ORDENAR PARA GRÁFICO: datas mais velhas primeiro (para eixo X)
+            const dadosGrafico = [...dados].sort((a, b) => new Date(a.data) - new Date(b.data));
+            
+            // ORDENAR PARA TABELA: datas mais recentes primeiro (topo da tabela)
+            const dadosTabela = [...dados].sort((a, b) => new Date(b.data) - new Date(a.data));
+            
+            // Atualizar gráfico - datas mais velhas do lado esquerdo (eixo Y)
+            chart.data.labels = dadosGrafico.map(d => formatDate(d.data));
+            chart.data.datasets[0].data = dadosGrafico.map(d => d.valor_glicemia);
+            chart.update();
+            
+            // Atualizar tabela - mais recentes no topo
+            const tabelaBody = document.querySelector('#tabela-historico tbody');
+            tabelaBody.innerHTML = dadosTabela.map(d => {
+                const dataFormatada = formatDate(d.data);
+                console.log(`Data original: ${d.data}, Formatada: ${dataFormatada}`); // Debug
+                
+                return `
+                <tr>
+                    <td>${dataFormatada}</td>
+                    <td>${d.valor_glicemia}</td>
+                    <td>${d.periodo || ''}</td>
+                    <td class="acoes-cell">
+                        <button class="btn-editar" onclick="editarRegistro(${d.id}, '${d.data}', ${d.valor_glicemia}, '${d.periodo}')">Editar</button>
+                        <button class="btn-excluir" onclick="solicitarExclusao(${d.id})">Excluir</button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            
+        } catch (error) {
+            showMessage('Erro ao carregar histórico: ' + error.message, 'error');
+            console.error('Erro ao carregar histórico:', error);
+        }
+    }
+
+    // Função para editar registro
+    function editarRegistro(id, data, valor, periodo) {
+      modoEdicao = true;
+      
+      // Preencher formulário com dados existentes
+      document.getElementById('registro-id').value = id;
+      document.getElementById('data').value = data;
+      document.getElementById('glicemia').value = valor;
+      document.getElementById('periodo').value = periodo;
+      
+      // Alterar texto do botão
+      document.getElementById('submit-button').textContent = 'Atualizar';
+      document.getElementById('cancel-edit').style.display = 'inline-block';
+      
+      // Rolar para o topo do formulário
+      document.getElementById('form-glicemia').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Função para solicitar exclusão
+    function solicitarExclusao(id) {
+      registroParaExcluir = id;
+      document.getElementById('confirmacao-exclusao').style.display = 'block';
+    }
+
+    // Função para resetar formulário
+    function resetarFormulario() {
+      modoEdicao = false;
+      document.getElementById('registro-id').value = '';
+      document.getElementById('form-glicemia').reset();
+      document.getElementById('submit-button').textContent = 'Registrar';
+      document.getElementById('cancel-edit').style.display = 'none';
+      
+      // Definir data atual como padrão (CORRIGIDO - sem problemas de fuso)
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+      const today = localDate.toISOString().split('T')[0];
+      document.getElementById('data').value = today;
+    }
+
+    // Função para mostrar mensagens
+    function showMessage(text, type = 'info') {
+      const msgElement = document.getElementById('mensagem-confirmacao');
+      msgElement.textContent = text;
+      msgElement.style.display = 'block';
+      
+      msgElement.style.backgroundColor = '';
+      msgElement.style.color = '';
+      
+      switch (type) {
+        case 'success':
+          msgElement.style.backgroundColor = '#e8f5e9';
+          msgElement.style.color = '#2e7d32';
+          break;
+        case 'error':
+          msgElement.style.backgroundColor = '#ffebee';
+          msgElement.style.color = '#c62828';
+          break;
+        case 'info':
+          msgElement.style.backgroundColor = '#e3f2fd';
+          msgElement.style.color = '#1565c0';
+          break;
+      }
+      
+      if (type !== 'info') {
+        setTimeout(() => {
+          msgElement.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Código de DEBUG - para verificar os dados
+    async function debugDados() {
+        try {
+            const response = await fetch('buscar_glicemia.php');
+            const dados = await response.json();
+            
+            console.log('=== DEBUG - DADOS DO SERVIDOR ===');
+            console.log('Status:', response.status);
+            console.log('Quantidade de registros:', dados.length);
+            
+            dados.forEach((item, index) => {
+                console.log(`Registro ${index + 1}:`, {
+                    id: item.id,
+                    data_original: item.data,
+                    tipo_data: typeof item.data,
+                    valor: item.valor_glicemia,
+                    periodo: item.periodo,
+                    data_formatada: formatDate(item.data)
+                });
+            });
+            
+        } catch (error) {
+            console.error('DEBUG Error:', error);
+        }
+    }
+
+    // Carregar dados ao abrir a página (CORRIGIDO)
+    document.addEventListener('DOMContentLoaded', function() {
+      // CORREÇÃO: Garantir data atual sem problemas de fuso
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+      const today = localDate.toISOString().split('T')[0];
+      
+      document.getElementById('data').value = today;
+      
+      // Carregar histórico
+      carregarHistorico();
+      
+      // Executar debug para verificar dados
+      debugDados();
+    });
+  </script>
+</body>
+</html>

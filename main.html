@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiaCare - Tela Principal</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Ícones Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-container">
+    <h1>DiaCare</h1>
+    <div class="heart"></div> 
+  </div>
+
+  <!-- Ícone de perfil + botão sair -->
+  <div class="profile-container">
+    <a href="perfil.php" class="profile-link" title="Perfil">
+      <i class="fas fa-user-circle"></i>
+    </a>
+    <a href="logout.php" class="logout-button" title="Sair da Conta">
+      <i class="fas fa-sign-out-alt"></i> Sair
+    </a>
+  </div>
+</header>
+
+<main class="content">
+  <h2>Bem-vindo ao DiaCare</h2>
+  <p>Selecione uma opção para continuar:</p>
+
+  <div class="options-container">
+    <a href="anamnese.html" class="option-box">
+      <h3>Registrar Anamnese</h3>
+      <p>Controle de Anamnese</p>
+    </a>
+
+    <a href="registro-glicemia.html" class="option-box">
+      <h3>Registrar Glicemia</h3>
+      <p>Controle diário</p>
+    </a>
+	
+	<a href="registro-pressao.html" class="option-box">
+      <h3>Registrar Pressão Arterial</h3>
+      <p>Controle diário</p>
+    </a>
+
+    <a href="registro-exames.html" class="option-box">
+      <h3>Registrar Exames</h3>
+      <p>Gerencie seus exames laboratoriais</p>
+    </a>
+
+    <a href="imc.php" class="option-box">
+      <h3>Registrar Medidas</h3>
+      <p>Seu IMC,RCQ e RCA de acordo com seus dados</p>
+    </a>
+
+    <a href="relatorio.html" class="option-box">
+      <h3>Relatório Dashboards</h3>
+      <p>Acompanhe seus resultados e saúde.</p>
+    </a>
+  </div>
+</main>
+
+<button class="botao-voltar" onclick="window.history.back()">Voltar</button>
+
+<footer class="footer">
+  <p>&copy; 2024 DiaCare. Todos os direitos reservados.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiaCare - Anamnese</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+   
+    @keyframes pulse {
+      0% { transform: rotate(45deg) scale(1); }
+      50% { transform: rotate(45deg) scale(1.1); }
+      100% { transform: rotate(45deg) scale(1); }
+    }
+    
+    .content {
+      padding: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .content h2 {
+      color: #4a4a4a;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+    }
+    
+    .readonly {
+      background-color: #f0f0f0;
+      border: 1px solid #ddd;
+      resize: none;
+      pointer-events: none;
+      color: #555;
+    }
+    
+    .form-group {
+      position: relative;
+      margin-bottom: 25px;
+      width: 100%;
+      max-width: 800px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #4a4a4a;
+    }
+    
+    .edit-btn {
+      position: absolute;
+      top: 35px;
+      right: -35px;
+      background: none;
+      border: none;
+      color: #6e8efb;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+    
+    .edit-btn:hover {
+      color: #a777e3;
+      transform: scale(1.1);
+    }
+    
+    textarea, input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s;
+      box-sizing: border-box;
+    }
+    
+    textarea {
+      min-height: 120px;
+    }
+    
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 15px;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    #error-message {
+      color: #ff6b6b;
+      text-align: center;
+      margin-top: 20px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo-container">
+      <h1>DiaCare</h1>
+      <div class="heart"></div>
+    </div>
+  </header>
+
+  <main class="content" id="main-content">
+    <h2>Registro de Anamnese</h2>
+
+    <form id="anamnese-form">
+      <input type="hidden" name="usuario_id" id="usuario_id">
+
+      <div class="form-group">
+        <label for="data">Data:</label>
+        <input type="date" id="data" name="data" class="readonly" readonly>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('data')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="tipo-diabetes">Tipo de Diabetes:</label>
+        <select id="tipo-diabetes" name="tipo-diabetes" class="readonly" disabled>
+          <option value="">Selecione</option>
+          <option value="Pré-diabetes">Pré-diabetes</option>
+          <option value="Tipo 1">Tipo 1</option>
+          <option value="Tipo 2">Tipo 2</option>
+          <option value="Gestacional">Gestacional</option>
+        </select>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('tipo-diabetes')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="insulina">Usa insulina?</label>
+        <select id="insulina" name="insulina" class="readonly" disabled>
+          <option value="">Selecione</option>
+          <option value="Sim">Sim</option>
+          <option value="Não">Não</option>
+        </select>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('insulina')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="doenca">Outras doenças:</label>
+        <textarea id="doenca" name="doenca" class="readonly" readonly placeholder="Descreva outras doenças"></textarea>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('doenca')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="alergias">Alergias:</label>
+        <textarea id="alergias" name="alergias" class="readonly" readonly placeholder="Descreva alergias a medicamentos"></textarea>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('alergias')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="medicacoes">Medicações Atuais:</label>
+        <textarea id="medicacoes" name="medicacoes" class="readonly" readonly placeholder="Liste as medicações que você usa"></textarea>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('medicacoes')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <div class="form-group">
+        <label for="historico">Histórico Familiar:</label>
+        <textarea id="historico" name="historico" class="readonly" readonly placeholder="Informe o histórico de doenças na família"></textarea>
+        <button type="button" class="edit-btn" onclick="habilitarEdicao('historico')"><i class="fas fa-pencil-alt"></i></button>
+      </div>
+
+      <button type="submit" class="form-button">Salvar</button>
+      <div id="error-message"></div>
+    </form>
+  </main>
+
+  <button class="botao-voltar" onclick="window.history.back()">Voltar</button>
+
+  <footer class="footer">
+    <p>&copy; 2024 DiaCare. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    // Função para habilitar/desabilitar edição de campos
+    function habilitarEdicao(id) {
+      const campo = document.getElementById(id);
+      
+      if (campo.tagName === 'SELECT') {
+        campo.disabled = !campo.disabled;
+      } else {
+        campo.readOnly = !campo.readOnly;
+      }
+      
+      campo.classList.toggle('readonly');
+      
+      // Se estiver editando, foca no campo
+      if (!campo.readOnly && !campo.disabled) {
+        campo.focus();
+      }
+    }
+
+    // Carrega os dados existentes
+    async function carregarDados() {
+      try {
+        const response = await fetch('anamnese_handler.php');
+        const text = await response.text();
+        
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Resposta inválida do servidor');
+        }
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        if (data.logado) {
+          if (data.dados && Object.keys(data.dados).length > 0) {
+            // Preenche os campos com os dados existentes
+            document.getElementById('data').value = data.dados.data || '';
+            document.getElementById('tipo-diabetes').value = data.dados.tipo_diabetes || '';
+            document.getElementById('insulina').value = data.dados.usa_insulina || '';
+            document.getElementById('doenca').value = data.dados.outras_doencas || '';
+            document.getElementById('alergias').value = data.dados.alergias || '';
+            document.getElementById('medicacoes').value = data.dados.medicacoes || '';
+            document.getElementById('historico').value = data.dados.historico_familiar || '';
+
+            // Mantém os campos bloqueados se já tiverem valor
+            const campos = ['data', 'tipo-diabetes', 'insulina', 'doenca', 'alergias', 'medicacoes', 'historico'];
+            campos.forEach(id => {
+              const campo = document.getElementById(id);
+              if (campo.value) {
+                if (campo.tagName === 'SELECT') {
+                  campo.disabled = true;
+                } else {
+                  campo.readOnly = true;
+                }
+                campo.classList.add('readonly');
+              }
+            });
+          }
+        } else {
+          mostrarErro('Usuário não logado. Por favor, faça login.');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        mostrarErro(error.message);
+      }
+    }
+
+    // Envia o formulário
+    async function enviarFormulario() {
+      const errorElement = document.getElementById('error-message');
+      errorElement.textContent = '';
+      
+      try {
+        const formData = new FormData(document.getElementById('anamnese-form'));
+        const response = await fetch('anamnese_handler.php', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const text = await response.text();
+        let result;
+        
+        try {
+          result = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Resposta inválida do servidor');
+        }
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        if (result.success) {
+          alert('✅ Dados salvos com sucesso!');
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Erro ao enviar formulário:', error);
+        mostrarErro('❌ ' + error.message);
+      }
+    }
+
+    function mostrarErro(mensagem) {
+      const errorElement = document.getElementById('error-message');
+      errorElement.textContent = mensagem;
+    }
+
+    // Configura os eventos quando a página carrega
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarDados();
+      
+      document.getElementById('anamnese-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await enviarFormulario();
+      });
+    });
+  </script>
+</body>
+</html>

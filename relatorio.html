@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DiaCare - Relatório de Exames</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css"> 
+  <style>
+    h2 {
+      color: #007acc;
+      border-bottom: 2px solid #007acc;
+      padding-bottom: 10px;
+    }
+    .info-box {
+      background-color: #e6f7ff;
+      border-left: 4px solid #007acc;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-active {
+      background-color: #2ecc71;
+    }
+    .status-inactive {
+      background-color: #e74c3c;
+    }
+    
+    .exame-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      padding: 20px;
+    }
+    .exame-title {
+      color: #007acc;
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    .chart-container {
+      margin: 20px 0;
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .table th, .table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    .table th {
+      background-color: #007acc;
+      color: white;
+    }
+    .table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .table tr:hover {
+      background-color: #e6f7ff;
+    }
+    
+    .imc-grafico-container {
+      margin: 30px 0;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .bmi-bar {
+      height: 20px;
+      background: linear-gradient(to right,
+        #3b82f6 0%, #3b82f6 15%,
+        #10b981 15%, #10b981 31%,
+        #f59e0b 31%, #f59e0b 49%,
+        #f97316 49%, #f97316 67%,
+        #ef4444 67%, #ef4444 85%,
+        #b91c1c 85%, #b91c1c 100%
+      );
+      border-radius: 10px;
+      margin: 15px 0;
+      position: relative;
+    }
+    .bar-marker {
+      position: absolute;
+      top: -10px;
+      left: 0;
+      transform: translateX(-50%);
+    }
+    .marker-arrow {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid #333;
+      margin: 0 auto;
+    }
+    .marker-value {
+      font-weight: bold;
+      margin-top: 2px;
+      font-size: 12px;
+    }
+    .bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #555;
+    }
+    .bar-label {
+      width: 16%;
+      text-align: center;
+    }
+    .bar-label:first-child {
+      text-align: left;
+      width: 15%;
+    }
+    .bar-label:last-child {
+      text-align: right;
+      width: 15%;
+    }
+    .imc-resultado {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      text-align: center;
+      border-left: 4px solid #007acc;
+    }
+    .imc-classificacao {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .imc-range {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .medida-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      padding: 20px;
+      text-align: center;
+    }
+    .medida-valor {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .medida-classificacao {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    .medida-info {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo-container">
+      <h1>DiaCare</h1>
+      <div class="heart"></div>
+    </div>
+  </header>
+
+  <main class="content">
+    <h2>Relatório de Exames</h2>
+    
+    <div class="info-box">
+      <p><span id="status-indicator" class="status-indicator status-active"></span> 
+      <span id="status-text">Sistema online - Atualizando automaticamente</span></p>
+      <p>Última atualização: <span id="ultima-atualizacao-text">--/--/---- --:--:--</span></p>
+    </div>
+
+    <h3>Índice de Massa Corporal (IMC)</h3>
+    <div class="imc-grafico-container">
+      <div id="imc-grafico">
+        <div class="bmi-bar">
+          <div class="bar-marker" id="imc-marker" style="left: 0%;">
+            <div class="marker-arrow"></div>
+            <div class="marker-value" id="imc-value">0.0</div>
+          </div>
+        </div>
+        <div class="bar-labels">
+          <div class="bar-label">&lt;18.5</div>
+          <div class="bar-label">18.5-24.9</div>
+          <div class="bar-label">25-29.9</div>
+          <div class="bar-label">30-34.9</div>
+          <div class="bar-label">35-39.9</div>
+          <div class="bar-label">&gt;40</div>
+        </div>
+        
+        <div class="imc-resultado" id="imc-resultado">
+          <div class="imc-classificacao" id="imc-classificacao">Nenhum dado de IMC disponível</div>
+          <div class="imc-range" id="imc-range"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="medidas-container">
+      <!-- Aqui serão inseridas as medidas RCQ, RCA e Cintura -->
+    </div>
+
+    <div id="exames-container">
+      <!-- Aqui serão inseridas as seções de cada tipo de exame -->
+    </div>
+  </main>
+
+  <button class="botao-voltar" onclick="window.history.back()">Voltar</button>
+  <footer class="footer">
+    <p>&copy; 2024 DiaCare. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    let ultimaAtualizacao = null;
+    let pollingInterval = null;
+    let graficos = {};
+
+    function formatarDataHora(timestamp) {
+      const data = new Date(timestamp * 1000);
+      return data.toLocaleString('pt-BR');
+    }
+
+    function atualizarStatus(online) {
+      const indicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+      
+      if (online) {
+        indicator.className = 'status-indicator status-active';
+        statusText.textContent = 'Sistema online - Atualizando automaticamente';
+      } else {
+        indicator.className = 'status-indicator status-inactive';
+        statusText.textContent = 'Sistema offline - Tentando reconectar...';
+      }
+    }
+
+    function atualizarGraficoIMC(imcData) {
+      const imcMarker = document.getElementById('imc-marker');
+      const imcValue = document.getElementById('imc-value');
+      const imcClassificacao = document.getElementById('imc-classificacao');
+      const imcRange = document.getElementById('imc-range');
+      
+      if (imcData) {
+        imcValue.textContent = imcData.imc.toFixed(1);
+        imcMarker.style.left = `${imcData.posicao}%`;
+        imcClassificacao.textContent = imcData.classificacao;
+        imcClassificacao.style.color = imcData.cor;
+        imcRange.textContent = `IMC: ${imcData.imc.toFixed(1)} (${imcData.classificacao})`;
+        imcMarker.style.display = 'block';
+      } else {
+        imcClassificacao.textContent = 'Nenhum dado de IMC disponível';
+        imcRange.textContent = '';
+        imcMarker.style.display = 'none';
+      }
+    }
+
+    function atualizarMedidasAdicionais(medidas) {
+      const container = document.getElementById('medidas-container');
+      container.innerHTML = '';
+
+      // Cria card para RCQ se existir
+      if (medidas?.rcq) {
+        const rcqCard = document.createElement('div');
+        rcqCard.className = 'medida-card';
+        rcqCard.style.borderLeft = `4px solid ${medidas.rcq.cor}`;
+        rcqCard.innerHTML = `
+          <h3 class="exame-title">Relação Cintura/Quadril (RCQ)</h3>
+          <div class="medida-valor" style="color: ${medidas.rcq.cor}">${medidas.rcq.valor.toFixed(2)}</div>
+          <div class="medida-classificacao" style="color: ${medidas.rcq.cor}">${medidas.rcq.classificacao}</div>
+          <div class="medida-info">Limite: ${medidas.rcq.limite} | Seu valor: ${medidas.rcq.valor.toFixed(2)}</div>
+        `;
+        container.appendChild(rcqCard);
+      }
+
+      // Cria card para RCA se existir
+      if (medidas?.rca) {
+        const rcaCard = document.createElement('div');
+        rcaCard.className = 'medida-card';
+        rcaCard.style.borderLeft = `4px solid ${medidas.rca.cor}`;
+        rcaCard.innerHTML = `
+          <h3 class="exame-title">Relação Cintura/Altura (RCA)</h3>
+          <div class="medida-valor" style="color: ${medidas.rca.cor}">${medidas.rca.valor.toFixed(2)}</div>
+          <div class="medida-classificacao" style="color: ${medidas.rca.cor}">${medidas.rca.classificacao}</div>
+          <div class="medida-info">Limite: ${medidas.rca.limite} | Seu valor: ${medidas.rca.valor.toFixed(2)}</div>
+        `;
+        container.appendChild(rcaCard);
+      }
+
+      // Cria card para Cintura se existir
+      if (medidas?.cintura) {
+        const cinturaCard = document.createElement('div');
+        cinturaCard.className = 'medida-card';
+        cinturaCard.style.borderLeft = `4px solid ${medidas.cintura.cor}`;
+        cinturaCard.innerHTML = `
+          <h3 class="exame-title">Circunferência da Cintura (CC)</h3>
+          <div class="medida-valor" style="color: ${medidas.cintura.cor}">${medidas.cintura.valor} cm</div>
+          <div class="medida-classificacao" style="color: ${medidas.cintura.cor}">${medidas.cintura.classificacao}</div>
+          <div class="medida-info">Limite: ${medidas.cintura.limite} cm | Seu valor: ${medidas.cintura.valor} cm</div>
+        `;
+        container.appendChild(cinturaCard);
+      }
+
+      // Se não há medidas, mostra mensagem
+      if (!medidas?.rcq && !medidas?.rca && !medidas?.cintura) {
+        container.innerHTML = `
+          <div class="medida-card">
+            <h3 class="exame-title">Medidas Corporais</h3>
+            <div class="medida-classificacao">Nenhuma medida adicional disponível</div>
+            <div class="medida-info">Adicione medidas de cintura e quadril para ver RCQ e RCA</div>
+          </div>
+        `;
+      }
+    }
+
+    function converterDataParaComparacao(dataStr) {
+      // Converte "dd/mm/aaaa" para "aaaa-mm-dd" para comparação
+      const partes = dataStr.split('/');
+      if (partes.length === 3) {
+        return new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+      }
+      return new Date(0); // Retorna data inválida se formato incorreto
+    }
+
+    function atualizarSecaoExame(nomeExame, exames) {
+      const container = document.getElementById('exames-container');
+      let secaoId = `exame-${nomeExame.replace(/\s+/g, '-').toLowerCase()}`;
+      let secao = document.getElementById(secaoId);
+      
+      if (!secao) {
+        secao = document.createElement('div');
+        secao.className = 'exame-section';
+        secao.id = secaoId;
+        
+        const titulo = document.createElement('h3');
+        titulo.className = 'exame-title';
+        titulo.textContent = nomeExame;
+        secao.appendChild(titulo);
+        
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'chart-container';
+        chartContainer.innerHTML = `<canvas id="chart-${secaoId}"></canvas>`;
+        secao.appendChild(chartContainer);
+        
+        const table = document.createElement('table');
+        table.className = 'table';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Data do Exame</th>
+              <th>Data do Resultado</th>
+              <th>Resultado</th>
+              <th>Referência</th>
+            </tr>
+          </thead>
+          <tbody id="table-body-${secaoId}"></tbody>
+        `;
+        secao.appendChild(table);
+        
+        container.appendChild(secao);
+      }
+      
+      const tbody = document.getElementById(`table-body-${secaoId}`);
+      tbody.innerHTML = '';
+      
+      if (exames.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhum exame encontrado</td></tr>';
+      } else {
+        // DEBUG: Mostrar ordem no console
+        console.log(`Ordem dos exames para ${nomeExame}:`);
+        exames.forEach((exame, index) => {
+          console.log(`  ${index + 1}. ${exame.data_exame} - ${exame.resultado}`);
+        });
+        
+        // TABELA: Mais recente no topo, mais antigo embaixo (ordem que vem do PHP)
+        exames.forEach(exame => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${exame.data_exame}</td>
+            <td>${exame.data_resultado || '-'}</td>
+            <td>${exame.resultado}</td>
+            <td>${exame.referencia || 'N/A'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+      
+      const ctx = document.getElementById(`chart-${secaoId}`).getContext('2d');
+      
+      if (graficos[secaoId]) {
+        graficos[secaoId].destroy();
+      }
+      
+      // GRÁFICO: Ordenar por data do mais antigo para o mais recente
+      const examesParaGrafico = [...exames];
+      
+      // Ordena do mais antigo para o mais recente
+      examesParaGrafico.sort((a, b) => {
+        const dataA = converterDataParaComparacao(a.data_exame);
+        const dataB = converterDataParaComparacao(b.data_exame);
+        return dataA - dataB;
+      });
+      
+      const labels = examesParaGrafico.map(e => e.data_exame);
+      const data = examesParaGrafico.map(e => parseFloat(e.resultado) || 0);
+      
+      graficos[secaoId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: nomeExame,
+            data: data,
+            borderColor: '#007acc',
+            backgroundColor: 'rgba(0, 122, 204, 0.1)',
+            borderWidth: 2,
+            pointBackgroundColor: '#007acc',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                    return `${nomeExame}: ${context.raw}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Data do Exame'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Resultado'
+              },
+              beginAtZero: false
+            }
+          }
+        }
+      });
+    }
+
+    async function carregarExames() {
+      try {
+        const url = ultimaAtualizacao 
+          ? `relatorio.php?ultima_atualizacao=${ultimaAtualizacao}`
+          : 'relatorio.php';
+          
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Erro na requisição');
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'error') {
+          throw new Error(data.message);
+        }
+        
+        ultimaAtualizacao = data.ultima_atualizacao || Math.floor(Date.now() / 1000);
+        document.getElementById('ultima-atualizacao-text').textContent = formatarDataHora(ultimaAtualizacao);
+        
+        // Atualiza IMC
+        atualizarGraficoIMC(data.medidas?.imc);
+        
+        // Atualiza RCQ, RCA e Cintura
+        atualizarMedidasAdicionais(data.medidas);
+        
+        // Atualiza exames
+        if (data.exames_por_tipo) {
+          for (const [nomeExame, exames] of Object.entries(data.exames_por_tipo)) {
+            atualizarSecaoExame(nomeExame, exames);
+          }
+        }
+        
+        atualizarStatus(true);
+        
+      } catch (error) {
+        console.error('Erro ao carregar exames:', error);
+        atualizarStatus(false);
+        setTimeout(carregarExames, 5000);
+      }
+    }
+
+    function iniciarPolling() {
+      carregarExames();
+      pollingInterval = setInterval(carregarExames, 30000);
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', iniciarPolling);
+  </script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiaCare - Registro de Pressão Arterial</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .botao-voltar {
+      background-color: #007acc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      position: fixed;
+      bottom: 60px;
+      right: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s;
+    }
+
+    .botao-voltar:hover {
+      background-color: #005fa3;
+    }
+
+    /* Estilo para classificação do pulso */
+    .pulso-baixo { color: #2196F3; font-weight: bold; }
+    .pulso-normal { color: #4CAF50; font-weight: bold; }
+    .pulso-elevado { color: #FF9800; font-weight: bold; }
+    .pulso-info {
+      font-weight: bold;
+      color: #007acc;
+    }
+
+    /* Estilos para o popup */
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .popup-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .popup-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    .confirm-button, .cancel-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .confirm-button {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .confirm-button:hover {
+      background-color: #45a049;
+    }
+    
+    .cancel-button {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .cancel-button:hover {
+      background-color: #d32f2f;
+    }
+    
+    /* Estilo para a tabela */
+    #tabela-historico {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    #tabela-historico th, #tabela-historico td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    
+    #tabela-historico th {
+      background-color: #007acc;
+      color: white;
+    }
+    
+    #tabela-historico tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    
+    #tabela-historico tr:hover {
+      background-color: #e6f7ff;
+    }
+    
+    /* Estilo para o gráfico */
+    .grafico-container {
+      height: 400px;
+      margin-top: 30px;
+      margin-bottom: 30px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Estilo para mensagens */
+    #mensagem-confirmacao {
+      display: none;
+      color: green;
+      margin: 15px 0;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    /* Ajuste para evitar sobreposição do rodapé */
+    .content {
+      padding-bottom: 100px;
+    }
+
+    .footer {
+      position: relative;
+      bottom: auto;
+      width: 100%;
+    }
+
+    /* Indicador de classificação da pressão */
+    .classificacao {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .normal { background-color: #4CAF50; color: white; }
+    .pre-hipertensao { background-color: #FF9800; color: white; }
+    .hipertensao-1 { background-color: #F44336; color: white; }
+    .hipertensao-2 { background-color: #D32F2F; color: white; }
+    .hipertensao-3 { background-color: #B71C1C; color: white; }
+
+    /* Botões de ação */
+    .btn-acao {
+      padding: 5px 10px;
+      font-size: 12px;
+      margin: 2px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .btn-editar {
+      background-color: #2196F3;
+      color: white;
+    }
+    
+    .btn-editar:hover {
+      background-color: #1976D2;
+    }
+    
+    .btn-excluir {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .btn-excluir:hover {
+      background-color: #d32f2f;
+    }
+
+    /* Estilo para pulso na tabela */
+    .pulso-info {
+      font-weight: bold;
+      color: #007acc;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo-container">
+      <h1>DiaCare</h1>
+      <div class="heart"></div>
+    </div>
+  </header>
+
+  <main class="content">
+    <h2>Registro de Pressão Arterial</h2>
+    
+    <form id="form-pressao" action="processa_pressao.php" method="POST">
+      <input type="hidden" id="registro-id" name="id" value="">
+      <div class="form-group">
+        <label for="data">Data:</label>
+        <input type="date" id="data" name="data" required />
+      </div>
+
+      <div class="form-group">
+        <label for="pressao-sistolica">Pressão Sistólica (mmHg):</label>
+        <input type="number" id="pressao-sistolica" name="sistolica" required min="50" max="250" placeholder="Ex: 120" />
+      </div>
+
+      <div class="form-group">
+        <label for="pressao-diastolica">Pressão Diastólica (mmHg):</label>
+        <input type="number" id="pressao-diastolica" name="diastolica" required min="30" max="150" placeholder="Ex: 80" />
+      </div>
+
+      <div class="form-group">
+        <label for="pulso">Pulso (bpm):</label>
+        <input type="number" id="pulso" name="pulso" min="40" max="200" placeholder="Opcional" />
+      </div>
+
+      <button type="submit" class="form-button" id="btn-submit">Registrar Pressão</button>
+      <button type="button" class="cancel-button" id="btn-cancelar-edicao" style="display: none;">Cancelar Edição</button>
+    </form>
+
+    <div id="mensagem-confirmacao"></div>
+
+    <!-- Popup de confirmação -->
+    <div id="confirmacao-popup" class="popup" style="display: none;">
+      <div class="popup-content">
+        <h3>Confirme os dados</h3>
+        <p><strong>Data:</strong> <span id="confirm-data"></span></p>
+        <p><strong>Pressão:</strong> <span id="confirm-pressao"></span></p>
+        <p><strong>Pulso:</strong> <span id="confirm-pulso"></span></p>
+        <p><strong>Classificação:</strong> <span id="confirm-classificacao"></span></p>
+        <div class="popup-buttons">
+          <button id="confirm-submit" class="confirm-button">Confirmar</button>
+          <button id="cancel-submit" class="cancel-button">Corrigir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico de Pressão -->
+    <div class="grafico-container">
+      <h3>Histórico de Pressão Arterial (Últimas 10 medições)</h3>
+      <canvas id="graficoPressao"></canvas>
+    </div>
+
+    <!-- Tabela de histórico -->
+    <div class="tabela-container">
+      <h3>Histórico Completo</h3>
+      <table id="tabela-historico">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Pressão (mmHg)</th>
+            <th>Pulso (bpm)</th>
+            <th>Classificação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dados serão preenchidos via JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <button class="botao-voltar" onclick="window.history.back()">Voltar</button>
+
+  <footer class="footer">
+    <p>&copy; 2024 DiaCare. Todos os direitos reservados.</p>
+  </footer>
+
+  <script>
+    // Variável para controlar modo de edição
+    let editando = false;
+    let registroEditandoId = null;
+
+    // Configuração do gráfico de Pressão
+    const ctxPressao = document.getElementById('graficoPressao').getContext('2d');
+    const chartPressao = new Chart(ctxPressao, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Pressão Sistólica',
+            data: [],
+            borderColor: '#ff6384',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: '#ff6384',
+            pointRadius: 4
+          },
+          {
+            label: 'Pressão Diastólica',
+            data: [],
+            borderColor: '#36a2eb',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: '#36a2eb',
+            pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false,
+            suggestedMin: 50,
+            suggestedMax: 180,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            },
+            title: {
+              display: true,
+              text: 'Pressão (mmHg)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.parsed.y + ' mmHg';
+                return label;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Função para classificar a pressão arterial
+    function classificarPressao(sistolica, diastolica) {
+      const sis = parseInt(sistolica);
+      const dia = parseInt(diastolica);
+      
+      // Determinar a classificação baseada na pior categoria
+      let classificacao = '';
+      let classe = '';
+      
+      // Verificar por estágios mais graves primeiro
+      if (sis >= 180 || dia >= 110) {
+        classificacao = 'HA ESTÁGIO 3';
+        classe = 'hipertensao-3';
+      } else if ((sis >= 160 && sis <= 179) || (dia >= 100 && dia <= 109)) {
+        classificacao = 'HA ESTÁGIO 2';
+        classe = 'hipertensao-2';
+      } else if ((sis >= 140 && sis <= 159) || (dia >= 90 && dia <= 99)) {
+        classificacao = 'HA ESTÁGIO 1';
+        classe = 'hipertensao-1';
+      } else if ((sis >= 120 && sis <= 139) || (dia >= 80 && dia <= 89)) {
+        classificacao = 'PRÉ-HIPERTENSÃO';
+        classe = 'pre-hipertensao';
+      } else if (sis < 120 && dia < 80) {
+        classificacao = 'PA NORMAL';
+        classe = 'normal';
+      } else {
+        classificacao = 'FORA DA FAIXA';
+        classe = 'pre-hipertensao';
+      }
+      
+      return { texto: classificacao, classe: classe };
+    }
+
+    // Função para classificar o pulso
+    function classificarPulso(pulso) {
+      if (!pulso) return { texto: 'Não informado', classe: '' };
+      
+      const p = parseInt(pulso);
+      if (p < 60) {
+        return { texto: `${p} bpm (Baixo)`, classe: 'pulso-baixo' };
+      } else if (p >= 60 && p <= 100) {
+        return { texto: `${p} bpm (Normal)`, classe: 'pulso-normal' };
+      } else {
+        return { texto: `${p} bpm (Elevado)`, classe: 'pulso-elevado' };
+      }
+    }
+
+    // Função para definir data atual - CORREÇÃO DEFINITIVA
+    function setCurrentDate() {
+      const today = new Date();
+      
+      // CORREÇÃO DEFINITIVA: Método mais simples e direto
+      // Usar o fuso horário local sem complicações
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      
+      // Formatar manualmente a data no formato YYYY-MM-DD
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      console.log('Data definida:', formattedDate);
+      document.getElementById('data').value = formattedDate;
+    }
+
+    // Popup de confirmação
+    document.getElementById('form-pressao').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const data = document.getElementById('data').value;
+      const sistolica = document.getElementById('pressao-sistolica').value;
+      const diastolica = document.getElementById('pressao-diastolica').value;
+      const pulso = document.getElementById('pulso').value;
+      
+      if (!data || !sistolica || !diastolica) {
+        showMessage('Por favor, preencha todos os campos obrigatórios', 'error');
+        return;
+      }
+
+      // Classificar a pressão
+      const classificacao = classificarPressao(parseInt(sistolica), parseInt(diastolica));
+      const classificacaoPulso = classificarPulso(pulso);
+      
+      document.getElementById('confirm-data').textContent = formatDate(data);
+      document.getElementById('confirm-pressao').textContent = `${sistolica}/${diastolica} mmHg`;
+      document.getElementById('confirm-pulso').textContent = classificacaoPulso.texto;
+      document.getElementById('confirm-classificacao').textContent = classificacao.texto;
+      document.getElementById('confirm-classificacao').className = `classificacao ${classificacao.classe}`;
+      
+      document.getElementById('confirmacao-popup').style.display = 'block';
+    });
+
+    // Botão confirmar
+    document.getElementById('confirm-submit').addEventListener('click', async function() {
+      const form = document.getElementById('form-pressao');
+      const formData = new FormData(form);
+      
+      try {
+        showMessage('Enviando dados...', 'info');
+        
+        const url = editando ? 'atualizar_pressao.php' : 'processa_pressao.php';
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'success') {
+          const mensagem = editando ? '✅ Pressão atualizada com sucesso!' : '✅ Pressão arterial registrada com sucesso!';
+          showMessage(mensagem, 'success');
+          
+          form.reset();
+          setCurrentDate();
+          document.getElementById('confirmacao-popup').style.display = 'none';
+          
+          // Sair do modo edição
+          if (editando) {
+            cancelarEdicao();
+          }
+          
+          await carregarHistorico();
+        } else {
+          showMessage('Erro: ' + (result.message || 'Falha ao registrar'), 'error');
+        }
+      } catch (error) {
+        showMessage('Erro na conexão: ' + error.message, 'error');
+        console.error('Erro:', error);
+      }
+    });
+
+    // Botão cancelar
+    document.getElementById('cancel-submit').addEventListener('click', function() {
+      document.getElementById('confirmacao-popup').style.display = 'none';
+    });
+
+    // Botão cancelar edição
+    document.getElementById('btn-cancelar-edicao').addEventListener('click', function() {
+      cancelarEdicao();
+    });
+
+    // Função para carregar histórico
+    async function carregarHistorico() {
+      try {
+        const response = await fetch('buscar_pressao.php');
+        
+        if (!response.ok) {
+          throw new Error('Erro ao carregar dados: ' + response.status);
+        }
+        
+        const dados = await response.json();
+        
+        console.log('Dados de pressão carregados:', dados);
+        
+        if (dados.error) {
+          throw new Error(dados.error);
+        }
+        
+        // Atualizar gráfico
+        if (dados.length > 0) {
+          const dadosOrdenados = [...dados].reverse();
+          chartPressao.data.labels = dadosOrdenados.map(d => formatDate(d.data));
+          chartPressao.data.datasets[0].data = dadosOrdenados.map(d => parseFloat(d.sistolica));
+          chartPressao.data.datasets[1].data = dadosOrdenados.map(d => parseFloat(d.diastolica));
+          chartPressao.update();
+        }
+        
+        // Atualizar tabela
+        const tabelaBody = document.querySelector('#tabela-historico tbody');
+        if (dados.length === 0) {
+          tabelaBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum registro de pressão encontrado</td></tr>';
+          return;
+        }
+        
+        tabelaBody.innerHTML = dados.map(d => {
+          const classificacao = classificarPressao(parseInt(d.sistolica), parseInt(d.diastolica));
+          const classificacaoPulso = classificarPulso(d.pulso);
+          
+          return `
+            <tr>
+              <td>${formatDate(d.data)}</td>
+              <td><strong>${d.sistolica}/${d.diastolica}</strong> mmHg</td>
+              <td><span class="pulso-info">${classificacaoPulso.texto}</span></td>
+              <td><span class="classificacao ${classificacao.classe}">${classificacao.texto}</span></td>
+              <td>
+                <button onclick="editarRegistro(${d.id})" class="btn-acao btn-editar">Editar</button>
+                <button onclick="excluirRegistro(${d.id})" class="btn-acao btn-excluir">Excluir</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Erro detalhado:', error);
+        showMessage('Erro ao carregar histórico: ' + error.message, 'error');
+      }
+    }
+
+    // Função para editar registro
+    async function editarRegistro(id) {
+      try {
+        const response = await fetch(`buscar_pressao_id.php?id=${id}`);
+        
+        if (!response.ok) {
+          throw new Error('Erro ao carregar dados do registro');
+        }
+        
+        const registro = await response.json();
+        
+        if (registro.error) {
+          throw new Error(registro.error);
+        }
+        
+        // Preencher formulário com dados do registro
+        document.getElementById('registro-id').value = registro.id;
+        document.getElementById('data').value = registro.data;
+        document.getElementById('pressao-sistolica').value = registro.sistolica;
+        document.getElementById('pressao-diastolica').value = registro.diastolica;
+        document.getElementById('pulso').value = registro.pulso || '';
+        
+        // Mudar para modo edição
+        editando = true;
+        registroEditandoId = id;
+        document.getElementById('btn-submit').textContent = 'Atualizar Pressão';
+        document.getElementById('btn-cancelar-edicao').style.display = 'inline-block';
+        
+        showMessage('Editando registro... Preencha os novos dados e clique em "Atualizar Pressão"', 'info');
+        
+      } catch (error) {
+        console.error('Erro ao carregar registro:', error);
+        showMessage('Erro ao carregar registro: ' + error.message, 'error');
+      }
+    }
+
+    // Função para excluir registro
+    async function excluirRegistro(id) {
+      if (!confirm('Tem certeza que deseja excluir este registro de pressão?')) {
+        return;
+      }
+      
+      try {
+        showMessage('Excluindo registro...', 'info');
+        
+        const response = await fetch('excluir_pressao.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `id=${id}`
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'success') {
+          showMessage('✅ Registro excluído com sucesso!', 'success');
+          await carregarHistorico();
+        } else {
+          showMessage('Erro: ' + (result.message || 'Falha ao excluir'), 'error');
+        }
+      } catch (error) {
+        showMessage('Erro na conexão: ' + error.message, 'error');
+        console.error('Erro:', error);
+      }
+    }
+
+    // Função para cancelar edição
+    function cancelarEdicao() {
+      editando = false;
+      registroEditandoId = null;
+      document.getElementById('registro-id').value = '';
+      document.getElementById('btn-submit').textContent = 'Registrar Pressão';
+      document.getElementById('btn-cancelar-edicao').style.display = 'none';
+      document.getElementById('form-pressao').reset();
+      setCurrentDate();
+      showMessage('Edição cancelada', 'info');
+    }
+
+    // Função para formatar data (DD/MM/AAAA)
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      // Ajustar para o fuso horário local na exibição
+      const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+      return adjustedDate.toLocaleDateString('pt-BR');
+    }
+
+    // Função para mostrar mensagens
+    function showMessage(text, type = 'info') {
+      const msgElement = document.getElementById('mensagem-confirmacao');
+      msgElement.textContent = text;
+      msgElement.style.display = 'block';
+      
+      msgElement.style.backgroundColor = '';
+      msgElement.style.color = '';
+      
+      switch (type) {
+        case 'success':
+          msgElement.style.backgroundColor = '#e8f5e9';
+          msgElement.style.color = '#2e7d32';
+          break;
+        case 'error':
+          msgElement.style.backgroundColor = '#ffebee';
+          msgElement.style.color = '#c62828';
+          break;
+        case 'info':
+          msgElement.style.backgroundColor = '#e3f2fd';
+          msgElement.style.color = '#1565c0';
+          break;
+      }
+      
+      if (type !== 'info') {
+        setTimeout(() => {
+          msgElement.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Carregar dados ao abrir a página
+    document.addEventListener('DOMContentLoaded', function() {
+      setCurrentDate();
+      carregarHistorico();
+    });
+  </script>
+</body>
+</html>
