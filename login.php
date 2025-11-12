@@ -58,11 +58,7 @@ session_start();
       <p class="redirect">
         Não tem uma conta? <a href="cadastro.html">Cadastre-se aqui</a>.
       </p>
-      
-     <!-- <p class="redirect">
-        Esqueceu a senha? <a href="recuperar_senha.html">Clique aqui para recuperar</a>.
-      </p> 
-	  -->
+     
     </form>
   </main>
 
@@ -87,4 +83,5 @@ session_start();
   unset($_SESSION['login_error']);
   ?>
 </body>
+
 </html>
